@@ -5,7 +5,9 @@ A browser-first Facility Management investigation and decision-support applicati
 ## Main features
 
 - Command-centre dashboard with portfolio KPIs, priority case, trends, activity, and data quality.
-- Progressive 126-question investigation across validation, loads, operations, measurements, root cause, action, verification, and closure.
+- One-task-at-a-time Investigation Wizard with the complete 126-question checklist available only on request.
+- Permanent rule-based thinking panel, evidence signals, smart progress, animated investigation timeline, root-cause tree, and local assistant chat.
+- Dedicated drag-and-drop Evidence Center and focused mobile Technician Mode.
 - Transparent rule-based cause assessment showing supporting and weakening evidence.
 - Sequenced next-best-action engine that completes basic validation before electrical testing.
 - Evidence register with compressed small images and metadata-only fallback for large files.
@@ -18,15 +20,17 @@ A browser-first Facility Management investigation and decision-support applicati
 ```text
 fm-energy-investigation-ai/
 ├── index.html, case.html, meters.html, analytics.html, settings.html
+├── evidence.html, field.html
 ├── manifest.json, service-worker.js, README.md
 ├── css/
 │   ├── variables.css, base.css, layout.css, components.css
-│   └── dashboard.css, case.css, responsive.css
+│   └── dashboard.css, case.css, responsive.css, evidence.css
 ├── js/
 │   ├── app.js, storage.js, seed-data.js, dashboard.js, case.js
 │   ├── meters.js, analytics.js, calculations.js
 │   ├── investigation-engine.js, validation-engine.js
-│   ├── recommendation-engine.js, report-generator.js, ui.js, utils.js
+│   ├── recommendation-engine.js, workflow-engine.js, assistant-engine.js
+│   ├── evidence.js, field.js, report-generator.js, ui.js, utils.js
 └── assets/
     ├── icons/README.md
     └── uploads/.gitkeep
@@ -75,7 +79,9 @@ Add an optional server-side, explicitly labelled advisory adapter only after the
 
 ## Testing checklist
 
-- Dashboard, navigation, case, meter, analytics, and settings pages load without console errors.
+- Dashboard, wizard case, Evidence Center, Technician Mode, meter, analytics, and settings pages load without console errors.
+- Wizard reveals one current task; completion advances it and View All Questions reveals the full checklist.
+- Thinking panel, smart progress, timeline, root-cause tree, and rule-based chat update from saved evidence.
 - C7 readings and 180.3% increase display; current task requests reading/photo/date/CT evidence.
 - Answer edits survive reload and create history; stage/progress and recommendation update.
 - Evidence metadata and small image paths work; deletion requires confirmation.
