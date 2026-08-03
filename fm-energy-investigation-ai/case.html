@@ -1,0 +1,39 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b1020"><title>C7 Investigation · FM Energy Investigation AI</title><link rel="stylesheet" href="css/variables.css"><link rel="stylesheet" href="css/base.css"><link rel="stylesheet" href="css/layout.css"><link rel="stylesheet" href="css/components.css"><link rel="stylesheet" href="css/dashboard.css"><link rel="stylesheet" href="css/case.css"><link rel="stylesheet" href="css/responsive.css"><link rel="stylesheet" href="css/evidence.css"><link rel="stylesheet" href="css/consumption.css"><link rel="manifest" href="manifest.json"><script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" defer></script><script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" defer></script></head><body data-page="case"><a class="skip" href="#main">Skip to content</a><aside class="sidebar"><a class="brand" href="index.html"><span>⚡</span><strong>FM Energy<br><small>Investigation AI</small></strong></a><nav aria-label="Main navigation"><a data-page="dashboard" href="index.html">⌂ Home</a><a data-page="consumption" href="consumption.html">↗ Consumption</a><a data-page="alerts" href="alerts.html">! Alerts</a><a data-page="case" href="case.html">⌕ Investigations</a><a data-page="data-entry" href="meters.html">＋ Data Entry</a><a data-page="reports" href="reports.html">▧ Reports</a><a data-page="settings" href="settings.html">⚙ Settings</a></nav><div class="side-foot"><a class="help-link" href="guide.html">? Help & user guide</a><span class="online">● Google Sheet source</span><small>Cached safely when offline</small></div></aside><main id="main"><header class="topbar"><div><button id="menu" class="icon-btn" aria-label="Toggle menu">☰</button><h1>C7 Investigation</h1><p>Case CASE-2026-0001 · Live evidence-driven workflow</p></div><div class="top-actions"><button id="theme" class="icon-btn" aria-label="Toggle theme">◐</button><span class="avatar">SR</span><span><b>Sreenath</b><small>Facility Manager</small></span></div></header><section id="caseHeader"></section>
+<section id="simpleCase" class="simple-investigation"><div class="skeleton-row"></div></section><details id="fullInvestigation" class="full-investigation"><summary>View full investigation details</summary><section class="case-workspace">
+  <div class="case-main">
+    <section id="wizard" class="wizard-card" aria-labelledby="wizard-title"></section>
+    <section class="card smart-progress-card" aria-labelledby="progress-title">
+      <div class="card-title"><div><span class="eyebrow">SMART PROGRESS</span><h2 id="progress-title">Investigation Progress</h2></div><button id="fieldMode" class="btn small">Open Technician Mode</button></div>
+      <div id="smartProgress" class="smart-progress"></div>
+    </section>
+    <section class="card" aria-labelledby="timeline-title">
+      <div class="card-title"><div><span class="eyebrow">CASE JOURNEY</span><h2 id="timeline-title">AI Investigation Timeline</h2></div></div>
+      <div id="aiTimeline" class="ai-timeline"></div>
+    </section>
+    <section class="card" aria-labelledby="tree-title">
+      <div class="card-title"><div><span class="eyebrow">EVIDENCE PATH</span><h2 id="tree-title">Root Cause Tree</h2></div><span class="badge">Updates with evidence</span></div>
+      <div id="rootCauseTree" class="root-cause-tree"></div>
+    </section>
+    <section id="overview" class="grid two">
+      <article class="card"><h2>Anomaly summary</h2><div id="anomaly"></div></article>
+      <article class="card"><h2>Stage controls</h2><div id="stages"></div></article>
+    </section>
+    <section id="questions" class="card all-questions-panel" hidden>
+      <div class="card-title"><div><span class="eyebrow">REFERENCE MODE</span><h2>All investigation questions</h2><p>Use this only when you need to review or edit the complete technical checklist.</p></div><button id="hideQuestions" class="btn small">Return to wizard</button></div>
+      <input id="questionSearch" type="search" placeholder="Search all 126 questions…" aria-label="Search questions">
+      <div id="questionGroups"></div>
+    </section>
+    <section class="grid two supporting-registers">
+      <article id="evidence" class="card"><div class="card-title"><h2>Evidence register</h2><a class="btn small" href="evidence.html">Open Evidence Center</a></div><form id="evidenceForm" class="form-grid"><label>Type<select name="type"></select></label><label>Related question<select name="questionId"></select></label><label>Title<input name="title" required></label><label>File link<input name="fileLink" type="url" placeholder="https://drive.google.com/..." required></label><label class="wide">Notes<textarea name="notes"></textarea></label><button class="btn primary" type="submit">Add evidence</button></form><div id="evidenceList"></div></article>
+      <article id="actions" class="card"><h2>Corrective actions</h2><form id="actionForm" class="form-grid"><label>Description<input name="description" required></label><label>Root cause<input name="rootCause" required></label><label>Assigned person<input name="assigned" value="Sreenath"></label><label>Priority<select name="priority"><option>Critical</option><option>High</option><option>Medium</option></select></label><label>Target date<input name="targetDate" type="date"></label><label>Expected saving (AED)<input name="expectedSaving" type="number" min="0"></label><button class="btn primary" type="submit">Create action</button></form><div id="actionList"></div></article>
+    </section>
+  </div>
+  <aside class="thinking-panel" aria-labelledby="thinking-title">
+    <div class="thinking-head"><span class="ai-orb" aria-hidden="true">✦</span><div><span class="eyebrow">RULE-BASED ASSISTANT</span><h2 id="thinking-title">AI Investigation Engine</h2></div></div>
+    <section><h3>Current Evidence</h3><div id="thinkingEvidence"></div></section>
+    <section><h3>Current Assessment</h3><div id="thinkingAssessment"></div></section>
+    <section class="next-action-panel"><h3>Next Recommended Action</h3><div id="thinkingNext"></div></section>
+    <section class="assistant-chat"><h3>Ask the investigation assistant</h3><div id="quickPrompts" class="quick-prompts"></div><div id="chatResponse" class="chat-response" aria-live="polite">Ask a question to interpret the current evidence.</div><form id="chatForm"><label class="sr-only" for="chatInput">Question</label><div class="chat-input"><input id="chatInput" placeholder="Ask about C7…"><button class="btn primary" aria-label="Send question">↑</button></div></form></section>
+  </aside>
+</section></details>
+<dialog id="noteDialog"><form method="dialog" id="noteForm"><h2>Add case note</h2><label>Note<textarea name="note" required></textarea></label><div class="dialog-actions"><button value="cancel">Cancel</button><button class="btn primary" value="default">Save note</button></div></form></dialog></main><nav class="mobile-nav"><a href="index.html">⌂<small>Home</small></a><a href="consumption.html">↗<small>Use</small></a><a href="alerts.html">!<small>Alerts</small></a><a href="case.html">⌕<small>Cases</small></a><a href="settings.html">⚙<small>Settings</small></a></nav><div id="toast" class="toast" role="status" aria-live="polite"></div><script type="module" src="js/case.js"></script></body></html>
