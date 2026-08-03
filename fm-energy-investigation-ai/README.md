@@ -269,3 +269,7 @@ This model protects writes, not confidentiality of read-only utility data. Anyon
 - Configure write tokens only on managed devices used by authorized staff.
 - A future production version should use Google Sign-In and role-based access.
 - Public read access is suitable only for the user’s controlled internal deployment and is not enterprise-grade authentication.
+
+### Milestone 4.1 transport hardening
+
+The browser client also strips `token` and `apiToken` keys from caller-supplied GET parameters, preventing accidental credential leakage into URLs. A backend `PERMISSION_DENIED` response triggers the same **Write access required** guidance as a locally missing token; the failed request is not retried.
