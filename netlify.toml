@@ -1,0 +1,12 @@
+[build]
+  publish = "fm-energy-investigation-ai"
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+
+[[headers]]
+  for = "/.netlify/functions/apps-script-proxy"
+  [headers.values]
+    Cache-Control = "no-store"
+    X-Content-Type-Options = "nosniff"

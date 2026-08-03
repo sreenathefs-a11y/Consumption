@@ -60,3 +60,7 @@ Redeploy a new Apps Script version after copying `Intelligence.gs` and the updat
 Public reads added in Milestone 4: `getConsumptionIntelligence`, `getHistoricalAnalysis`, `getComparisonData`, `getOpportunities`, `getTodaySummary`, `getMonthlyChecklist`, and `getDataQualityIssues`. The controlled `updateAnomaly` POST records explained, ignored, and assigned alert decisions in both `Anomaly_Register` and `Audit_Log`.
 
 Intelligence results are calculated at request time and are not written into source sheets. Safe reads may be cached for 120 seconds; writes invalidate the affected tab cache. Historical series are capped and consumption tables are paginated. Utilities and units remain separate, reductions with incomplete data are not treated as savings, and missing tariffs never produce assumed cost values.
+
+## Netlify production gateway
+
+The production frontend does not call this Web App directly. Configure its `/exec` URL only as the Netlify environment variable `APPS_SCRIPT_URL`; the same-origin Netlify Function follows ContentService redirects and relays JSON. Do not put the deployment URL in browser settings or committed frontend code. Direct URL override remains available only under the frontend’s Advanced development section.

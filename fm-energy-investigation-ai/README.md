@@ -98,11 +98,11 @@ The intended production source of truth is the Google Apps Script Web App attach
 
 1. Deploy the backend by following `google-apps-script/README.md`.
 2. Open Settings → Google Apps Script API.
-3. Keep mode set to **Remote**, paste the `/exec` deployment URL, then select **Save and connect**. No token is required to view live data. Configure the token separately under **Authorized data changes** only when writes are required.
+3. Deploy the frontend on Netlify with `APPS_SCRIPT_URL` configured. The production frontend uses the same-origin gateway automatically; normal users paste no backend URL. Configure a write token separately under **Authorized data changes** only when writes are required.
 4. Confirm the header badge reads **LIVE GOOGLE SHEET**. Cached results are labelled as not current; connection failures never masquerade as live data.
 5. If previous local records are detected, archive or export them. The default archive action never writes to the Sheet.
 
-No deployment URL or token is committed. Until a deployment URL is configured, remote pages show an API setup state rather than falling back to the old portfolio demonstration data.
+No deployment URL or token is committed. Netlify reads the backend URL from its environment; mock mode remains available for controlled development.
 
 ## Live API summary
 
@@ -254,7 +254,7 @@ Apps Script caches safe read results for 120 seconds and invalidates affected ca
 
 # Milestone 4.1 — Public Reads and Protected Writes
 
-Normal viewing requires only the Apps Script Web App deployment URL. Health, dashboards, sites, meters, consumption, history, alerts, investigations, evidence, corrective-action views, portfolio, intelligence, comparisons, opportunities, Today, checklist, and data-quality GET actions are public. The frontend never puts the write token in a GET URL.
+Normal production viewing uses the same-origin Netlify gateway and requires no URL or token entry. Health, dashboards, sites, meters, consumption, history, alerts, investigations, evidence, corrective-action views, portfolio, intelligence, comparisons, opportunities, Today, checklist, and data-quality GET actions are public. The frontend never puts the write token in a GET URL.
 
 All POST actions remain protected. Before any network request, a write without a locally configured token is stopped and the app shows **Write access required** with **Open Settings** and **Cancel**. A configured token is sent only inside the POST JSON body. Backend `PERMISSION_DENIED` errors are translated into a human-readable message and are never retried automatically.
 
@@ -273,3 +273,34 @@ This model protects writes, not confidentiality of read-only utility data. Anyon
 ### Milestone 4.1 transport hardening
 
 The browser client also strips `token` and `apiToken` keys from caller-supplied GET parameters, preventing accidental credential leakage into URLs. A backend `PERMISSION_DENIED` response triggers the same **Write access required** guidance as a locally missing token; the failed request is not retried.
+
+# Production Netlify Gateway
+
+Production browsers call `/.netlify/functions/apps-script-proxy`, never `script.google.com`. The Netlify Function reads the private backend destination from the server-side environment, follows the Apps Script `script.googleusercontent.com` redirect, forwards GET query parameters and POST JSON, and returns the backend JSON status/body with `application/json` and `no-store` headers.
+
+## Netlify deployment
+
+1. Import `sreenathefs-a11y/Consumption` into Netlify.
+2. Use the repository root as the base directory. `netlify.toml` publishes `fm-energy-investigation-ai` and discovers functions in `netlify/functions`.
+3. In **Site configuration → Environment variables**, add:
+
+   ```text
+   APPS_SCRIPT_URL=https://script.google.com/macros/s/DEPLOYMENT_ID/exec
+   ```
+
+   Replace `DEPLOYMENT_ID` in Netlify only. Never commit the actual URL.
+4. Trigger a new production deploy.
+5. Test `https://YOUR_SITE/.netlify/functions/apps-script-proxy?action=health` and the dashboard.
+6. Normal users open the app with no connection URL. Authorized users may add only the write token under Settings → Authorized data changes.
+
+The write token travels from the browser to the same-origin function only in a POST JSON body, and is forwarded to Apps Script only in that body. The proxy strips `token` and `apiToken` from GET queries and contains no token logging. **Advanced development** may temporarily enable a direct Apps Script URL; it is disabled by default and must not be used for production.
+
+## Gateway errors
+
+- `PROXY_NOT_CONFIGURED`: `APPS_SCRIPT_URL` is missing in Netlify.
+- `PROXY_CONFIGURATION_ERROR`: the environment value is invalid or not HTTPS.
+- `PROXY_TIMEOUT`: Apps Script did not respond within the gateway timeout.
+- `PROXY_CONNECTION_ERROR`: Netlify could not reach Apps Script.
+- `INVALID_BACKEND_RESPONSE`: Apps Script returned non-JSON content.
+
+No JSONP, `no-cors`, service-worker routing workaround, or browser-visible Apps Script URL is used.
