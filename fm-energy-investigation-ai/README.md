@@ -178,3 +178,76 @@ tests/
 - Reconnect and explicitly confirm one draft submission; verify no silent retry or duplicate.
 - Archive/export pre-M3 local records and confirm nothing is merged into the Sheet.
 - Switch to Mock mode and confirm only the supplied C7 fixture appears with unknown values left blank/null.
+
+# Milestone 4 — Consumption Intelligence and FM Experience
+
+Milestone 4 makes consumption understanding the primary entry point while preserving the full evidence-led investigation workflow. Home answers: **What is happening? Where should I look? What should I do next?** The deterministic flow is consumption → validation → comparison → alert review → justified investigation → corrective action → verification → confirmed saving.
+
+## User navigation
+
+- **Home** — utility status, five priorities, Today queues, high/low use, verified improvements, and data quality.
+- **Consumption** — overview, historical analysis, Portfolio, meters, Comparison Center, and Opportunities.
+- **Alerts** — consumption and data-quality alerts; review, explain, assign, ignore with an audited reason, or open an existing investigation.
+- **Investigations** — simplified problem/known/missing/next-action view with expandable technical details, evidence, actions, and reports.
+- **Data Entry** — meter master, readings, and source data entry.
+- **Reports** — portfolio, site, high/low, historical, quality, alerts, investigations, actions, savings, and the printable monthly checklist.
+- **Settings** — Google Sheet connection and local display preferences.
+- **Help & User Guide** is available below the primary navigation.
+
+## Daily workflow
+
+1. Open Home and review the five priorities.
+2. Correct missing, negative, duplicate, suspicious-zero, continuity, or unverified data.
+3. Review changes in Consumption.
+4. Review alerts and open only justified investigations.
+5. Complete the recommended check or corrective action.
+6. Verify the result before recording a saving.
+
+## Monthly workflow
+
+1. Enter or import month-end readings.
+2. Verify readings and resolve missing data.
+3. Compare with the previous month and same month last year.
+4. Review historical outliers and open justified investigations.
+5. Review costs only where an approved tariff exists.
+6. Verify savings and generate the monthly report.
+
+## Classification rules
+
+The backend uses available previous-period values, same-month history, historical range, normalized-period data, and data-quality/verification fields. It returns a classification, plain-language explanation, comparison basis, recommended action, and whether investigation is justified.
+
+- **Normal** — within the available comparison and historical range.
+- **Watch** — a material change that needs review, including an unverified reduction.
+- **Abnormal** — outside the available normal range.
+- **Critical** — far outside range and comparisons, after data checks.
+- **Data issue** — negative, invalid, duplicate, broken, suspicious, or unverified source data.
+- **Missing data** — absent value or an unconfirmed zero.
+- **Not enough information** — insufficient comparable history.
+- **Explained variation** — a change such as a seasonal increase that remains within the historical range.
+
+A reduction with incomplete data is explained as **“Reduction not confirmed — incomplete or unverified meter data.”** Different utilities or units cannot be compared. Cost is unavailable when tariff is missing.
+
+## Milestone 4 API reads
+
+- `getConsumptionIntelligence` — filtered records, calculations, rankings, suspicious data, explanations, and pagination.
+- `getHistoricalAnalysis` — unit-separated monthly series, rolling averages, annual totals, extremes, and gaps.
+- `getComparisonData` — actuals, differences, percentage changes, ranks, validity, and context.
+- `getOpportunities` — verified improvements, potential actions, and missing-data/tariff opportunities.
+- `getTodaySummary` — utility cards, five priorities, high/low rankings, verified improvements, quality, and queues.
+- `getMonthlyChecklist` — printable ten-step monthly control checklist.
+- `getDataQualityIssues` — filtered source quality records used by Alerts.
+
+`updateAnomaly` was added as an audited controlled write so explained, assigned, and ignored alert decisions are retained. Existing endpoints remain unchanged.
+
+## Performance and accessibility
+
+Apps Script caches safe read results for 120 seconds and invalidates affected caches after writes. Server filters and 50-row default pagination limit browser work; historical chart series are capped at 120 points. Filters are debounced. All empty charts are replaced with explanations. Status pills include text and color, table rows support keyboard drill-down, controls use labels and mobile touch sizes, and filters collapse on small screens.
+
+## Milestone 4 limitations
+
+- Classification quality depends on available live history, period dates, units, verification, occupancy, area, and operating-hour records. Missing context is explained, not assumed.
+- Similar-building benchmarking is available only when comparable building attributes exist in source records.
+- Same-month-last-year cards remain unavailable when no matching historical record is returned.
+- Alert decisions can update an existing anomaly, but an investigation is not automatically created for every alert.
+- Report previews are printable browser reports; the existing investigation PDF remains the dedicated technical PDF.
+- No live-data accuracy claim is made by repository tests; deployment-owner acceptance must compare the UI with the connected workbook.

@@ -1,6 +1,7 @@
 function readAction_(action, params) {
   var routes = {
     getSettings: function() { return readAll_('settings'); },
+    getDataQualityIssues: function() { return filterRecords_(readAll_('quality'), params, {siteId:'Site_ID',buildingId:'Building_ID',utilityId:'Utility_ID',meterId:'Meter_ID',status:'Status'}); },
     getSites: function() { return filterRecords_(readAll_('sites'), params, SCHEMA.sites); },
     getBuildings: function() { return filterRecords_(readAll_('buildings'), params, SCHEMA.buildings); },
     getUtilities: function() { return filterRecords_(readAll_('utilities'), params, SCHEMA.utilities); },
@@ -14,7 +15,13 @@ function readAction_(action, params) {
     getCorrectiveActions: function() { var rows = filterRecords_(readAll_('actions'), params, SCHEMA.actions); return params.overdue === 'true' ? rows.filter(isOverdue_) : rows; },
     getDashboard: function() { return calculateDashboard_(); },
     getPortfolioTree: function() { return portfolioTree_(); },
-    getCaseDetails: function() { return caseDetails_(params.caseId); }
+    getCaseDetails: function() { return caseDetails_(params.caseId); },
+    getConsumptionIntelligence: function() { return getConsumptionIntelligence_(params); },
+    getHistoricalAnalysis: function() { return getHistoricalAnalysis_(params); },
+    getComparisonData: function() { return getComparisonData_(params); },
+    getOpportunities: function() { return getOpportunities_(params); },
+    getTodaySummary: function() { return getTodaySummary_(params); },
+    getMonthlyChecklist: function() { return getMonthlyChecklist_(); }
   };
   if (!routes[action]) throw apiError_('UNKNOWN_ACTION', 'Unknown read action.', { action: action });
   return routes[action]();
@@ -38,6 +45,8 @@ function writeAction_(action, body) {
     updateCorrectiveAction:function(){requireFields_(body,['actionId','updatedBy']);return updateAudited_('actions',body.actionId,mapPayload_(body,{description:'Description',assignedTo:'Assigned_To',priority:'Priority',targetDate:'Target_Date',status:'Status',expectedSaving:'Expected_Saving',verificationMethod:'Verification_Method',closureRemarks:'Closure_Remarks'}),'CorrectiveAction',body);},
     updateCase:function(){requireFields_(body,['caseId','updatedBy']);return updateAudited_('cases',body.caseId,mapPayload_(body,{status:'Status',severity:'Severity',assignedTo:'Assigned_To',notes:'Notes'}),'InvestigationCase',body);},
     confirmRootCause:function(){requireFields_(body,['caseId','rootCause','confirmedBy']);var missing=rootCauseGates_(body.caseId);if(missing.length)throw apiError_('ROOT_CAUSE_LOCKED','Root cause cannot be confirmed until all gates are complete.',{missingGates:missing});return updateAudited_('cases',body.caseId,{Confirmed_Root_Cause:body.rootCause,Root_Cause_Status:'Confirmed',Root_Cause_Confirmed_By:body.confirmedBy,Root_Cause_Confirmed_At:new Date()},'InvestigationCase',body);},
+    createInvestigationCase:function(){requireFields_(body,['anomalyId','createdBy']);var anomaly=findById_('anomalies',body.anomalyId);if(!anomaly)throw apiError_('NOT_FOUND','Alert record was not found.',{anomalyId:body.anomalyId});if(anomaly.Case_ID)throw apiError_('DUPLICATE_CASE','An investigation already exists for this alert.',{caseId:anomaly.Case_ID});var record={Case_ID:uniqueId_('CASE'),Case_Title:body.title||anomaly.Title||'Utility alert investigation',Anomaly_ID:body.anomalyId,Meter_ID:anomaly.Meter_ID||'',Site_ID:anomaly.Site_ID||'',Utility_ID:anomaly.Utility_ID||'',Severity:anomaly.Severity||'Review',Status:'Data Collection',Root_Cause_Status:'Not Assessed',Assigned_To:body.assignedTo||''};var created=createAudited_('cases',record,'InvestigationCase',{enteredBy:body.createdBy,auditRemarks:'Created explicitly from reviewed alert'});updateAudited_('anomalies',body.anomalyId,{Case_ID:record.Case_ID,Status:'Under Investigation'},'Anomaly',{updatedBy:body.createdBy,auditRemarks:'Linked to explicitly created investigation'});return created;},
+    updateAnomaly:function(){requireFields_(body,['anomalyId','status','updatedBy']);return updateAudited_('anomalies',body.anomalyId,mapPayload_(body,{status:'Status',reason:'Explanation',assignedTo:'Assigned_To',remarks:'Remarks'}),'Anomaly',body);},
     closeCase:function(){requireFields_(body,['caseId','closureApprover']);var missing=closureGates_(body.caseId,body.closureApprover);if(missing.length)throw apiError_('CASE_CLOSURE_LOCKED','Case closure requirements are incomplete.',{missingGates:missing});return updateAudited_('cases',body.caseId,{Status:'Closed',Closure_Approver:body.closureApprover,Closed_At:new Date(),Closure_Remarks:body.remarks||''},'InvestigationCase',body);}
   };
   if(!routes[action])throw apiError_('UNKNOWN_ACTION','Unknown write action.',{action:action});

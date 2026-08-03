@@ -52,3 +52,11 @@ Authenticated POST writes: `createMeterReading`, `updateMeterReading`, `createIn
 - `SHEET_NOT_FOUND` / `SCHEMA_ERROR`: verify exact tab and header names in `Config.gs` against the workbook.
 - HTML response: confirm the PWA uses the deployed `/exec` URL and deployment access permits the caller.
 - Old behavior after editing code: deploy a **new version**; saving alone is insufficient.
+
+## Milestone 4 intelligence endpoints
+
+Redeploy a new Apps Script version after copying `Intelligence.gs` and the updated router/repository files. Saving source without redeploying does not update the live `/exec` deployment.
+
+Authenticated reads added in Milestone 4: `getConsumptionIntelligence`, `getHistoricalAnalysis`, `getComparisonData`, `getOpportunities`, `getTodaySummary`, `getMonthlyChecklist`, and `getDataQualityIssues`. The controlled `updateAnomaly` POST records explained, ignored, and assigned alert decisions in both `Anomaly_Register` and `Audit_Log`.
+
+Intelligence results are calculated at request time and are not written into source sheets. Safe reads may be cached for 120 seconds; writes invalidate the affected tab cache. Historical series are capped and consumption tables are paginated. Utilities and units remain separate, reductions with incomplete data are not treated as savings, and missing tariffs never produce assumed cost values.
