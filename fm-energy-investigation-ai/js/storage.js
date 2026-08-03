@@ -25,18 +25,6 @@ function migrate(db) {
     caseData.activity = caseData.activity || [];
     caseData.notes = caseData.notes || [];
   });
-  db.demo = {
-    priorities: [
-      { id: 'DEMO-A', caseName: 'Tower A', waitingFor: 'Waiting for CT ratio', owner: 'Electrical Engineer', severity: 'High' },
-      { id: 'DEMO-C15', caseName: 'C15', waitingFor: 'Waiting for current measurement', owner: 'Technician', severity: 'Medium' }
-    ],
-    waitingClient: 2,
-    waitingEngineer: 3,
-    waitingContractor: 1,
-    overdueActions: 2,
-    recentlyClosed: 4,
-    ...db.demo
-  };
   return db;
 }
 
@@ -53,7 +41,7 @@ export const storage = {
     if (available) {
       try { db = JSON.parse(localStorage.getItem(KEY)); } catch { db = null; }
     }
-    if (!db || !db.version) db = seedData();
+    if (!db || !db.version) db = { version: 3, settings: seedData().settings };
     return save(db);
   },
   get() { return memory || this.init(); },

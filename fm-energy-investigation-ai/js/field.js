@@ -1,27 +1,10 @@
+import { dataAdapter } from './data-adapter.js';
+import { initShell, toast, renderConnectionBanner, safeMessage } from './ui.js';
+import { offlineDraftStore } from './offline-draft-store.js';
 import { storage } from './storage.js';
-import { initShell, toast } from './ui.js';
-import { getWizardState } from './workflow-engine.js';
-import { id } from './utils.js';
-
+import { displayValue } from './schema-mapping.js';
 initShell();
-let caseData = storage.collection('cases')[0];
-const state = getWizardState(caseData);
-document.querySelector('#fieldTask').innerHTML = `<article class="field-task"><span class="task-icon">${state.active?.electrical ? 'ϟ' : '✓'}</span><div><span class="badge critical">C7 · ${caseData.severity}</span><h1>${state.active?.title || 'Field checks complete'}</h1><p>${state.active?.prompt || 'Return the case to the Facility Manager for closure review.'}</p><small>Assigned role · ${state.active?.person || caseData.assigned}</small></div></article>`;
-const recordedAt = document.querySelector('[name=recordedAt]');
-recordedAt.value = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-document.querySelector('#fieldForm').onsubmit = async event => {
-  event.preventDefault();
-  const form = event.currentTarget;
-  const values = Object.fromEntries(new FormData(form));
-  const photo = form.elements.photo.files[0];
-  caseData.evidence.push({ id: id('EVD'), type: photo ? 'Meter photograph' : 'Clamp-meter measurement', title: `Field update — ${state.active?.title || 'C7'}`, notes: `Reading: ${values.reading || '—'}; Current: ${values.current || '—'} A; Voltage: ${values.voltage || '—'} V; Remarks: ${values.remarks || 'None'}`, fileName: photo?.name || '', data: null, questionId: state.active?.questionId || '', verificationStatus: 'Pending verification', uploadedBy: storage.get().settings.userName, at: values.recordedAt ? new Date(values.recordedAt).toISOString() : new Date().toISOString() });
-  if (state.active && values.reading) {
-    const question = caseData.questions.find(q => q.id === state.active.questionId);
-    if (question && state.active.type !== 'evidence') { question.answer = values.reading; question.status = 'Answered'; question.updatedBy = storage.get().settings.userName; question.updatedAt = new Date().toISOString(); }
-  }
-  caseData.activity.unshift({ text: `Technician field update submitted for ${state.active?.title || 'C7'}`, at: new Date().toISOString() });
-  storage.update('cases', caseData.id, caseData);
-  toast('Field update submitted for verification');
-  form.reset();
-  setTimeout(() => location.reload(), 700);
-};
+const caseId=new URLSearchParams(location.search).get('caseId')||'CASE-2026-0001';let details=null;
+async function load(){try{const result=await dataAdapter.getCaseDetails(caseId);details=result.data;renderConnectionBanner({source:result.source,lastSync:result.meta.timestamp||result.meta.cachedAt});const item=details.case;document.querySelector('#fieldTask').innerHTML=`<article class="field-task"><span class="task-icon">✓</span><div><span class="badge critical">${displayValue(item.Case_ID)} · ${displayValue(item.Severity)}</span><h1>${displayValue(item.Next_Required_Action||'Collect and verify meter readings and evidence')}</h1><p>${displayValue(item.Case_Title)}</p><small>Assigned role · ${displayValue(item.Assigned_To)}</small></div></article>`}catch(error){renderConnectionBanner({source:error.code==='API_NOT_CONFIGURED'?'unconfigured':'offline',message:safeMessage(error)});document.querySelector('#fieldTask').innerHTML='<article class="field-task"><div><h1>Offline field draft</h1><p>Record the task locally. It will not be submitted automatically.</p></div></article>'}}
+const recordedAt=document.querySelector('[name=recordedAt]');recordedAt.value=new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16);
+document.querySelector('#fieldForm').onsubmit=async event=>{event.preventDefault();const form=event.currentTarget,values=Object.fromEntries(new FormData(form));const photo=form.elements.photo.files[0];const body={caseId,questionId:'',answer:`Reading: ${values.reading||'Not provided'}; Current: ${values.current||'Not provided'} A; Voltage: ${values.voltage||'Not provided'} V`,technicalNotes:values.remarks||'',status:'Answered',enteredBy:storage.get().settings.userName||'Not provided'};const draft=offlineDraftStore.save({action:'createInvestigationInput',body,photoMetadata:photo?{name:photo.name,size:photo.size,type:photo.type}:null,recordedAt:values.recordedAt});toast('Field update saved as a local draft. It was not submitted automatically.');if(navigator.onLine&&confirm('The draft is saved. Submit it once to the live Google Sheet now?')){try{await dataAdapter.createInvestigationInput(body);offlineDraftStore.remove(draft.draftId);toast('Field update submitted and audited')}catch(error){toast(`${safeMessage(error)} Draft retained locally.`)}}form.reset();recordedAt.value=new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16)};load();

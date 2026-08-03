@@ -1,81 +1,12 @@
+import { dataAdapter } from './data-adapter.js';
+import { initShell, toast, renderConnectionBanner, safeMessage } from './ui.js';
+import { displayValue } from './schema-mapping.js';
+import { esc, date } from './utils.js';
 import { storage } from './storage.js';
-import { initShell, toast } from './ui.js';
-import { esc, id, date } from './utils.js';
-
 initShell();
-let caseData = storage.collection('cases')[0];
-const form = document.querySelector('#dropForm');
-const fileInput = document.querySelector('#evidenceFile');
-const types = ['Meter photograph', 'Meter reading', 'Clamp-meter measurement', 'Power-analyser record', 'Thermal image', 'BMS screenshot', 'DB schedule', 'Single-line diagram', 'Work order', 'Permit', 'Technician report', 'Comment', 'Other document'];
-form.elements.type.innerHTML = types.map(type => `<option>${type}</option>`).join('');
-form.elements.questionId.innerHTML = '<option value="">General case evidence</option>' + caseData.questions.map(q => `<option value="${q.id}">${q.id} · ${esc(q.text)}</option>`).join('');
-
-async function compress(file) {
-  if (!file || file.size > 750000 || !file.type.startsWith('image/')) return null;
-  return new Promise(resolve => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const image = new Image();
-      image.onload = () => {
-        const canvas = document.createElement('canvas');
-        const scale = Math.min(1, 1000 / image.width);
-        canvas.width = image.width * scale;
-        canvas.height = image.height * scale;
-        canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL('image/jpeg', 0.72));
-      };
-      image.src = reader.result;
-    };
-    reader.readAsDataURL(file);
-  });
-}
-
-function render() {
-  caseData = storage.collection('cases')[0];
-  const verified = caseData.evidence.filter(item => item.verificationStatus === 'Verified').length;
-  document.querySelector('#evidenceSummary').innerHTML = `<span><b>${caseData.evidence.length}</b><small>Total items</small></span><span><b>${verified}</b><small>Verified</small></span><span><b>${caseData.evidence.length - verified}</b><small>Awaiting review</small></span>`;
-  const filter = document.querySelector('#evidenceFilter').value;
-  const items = caseData.evidence.filter(item => !filter || item.type === filter);
-  document.querySelector('#evidenceGallery').innerHTML = items.length ? items.slice().reverse().map(item => {
-    const question = caseData.questions.find(q => q.id === item.questionId);
-    return `<article class="evidence-tile">${item.data ? `<img src="${item.data}" alt="${esc(item.title)}">` : `<div class="file-placeholder">${item.type === 'Comment' ? '“' : '▧'}</div>`}<div><span class="badge">${esc(item.type)}</span><h3>${esc(item.title)}</h3><p>${esc(item.notes || 'No comments')}</p><dl><div><dt>Date</dt><dd>${date(item.at)}</dd></div><div><dt>Uploaded by</dt><dd>${esc(item.uploadedBy)}</dd></div><div><dt>Related question</dt><dd>${question ? `${question.id} · ${esc(question.text)}` : 'General case evidence'}</dd></div><div><dt>Verification</dt><dd><select class="verify-evidence" data-id="${item.id}">${['Pending verification', 'Verified', 'Needs recheck', 'Rejected'].map(status => `<option ${status === item.verificationStatus ? 'selected' : ''}>${status}</option>`).join('')}</select></dd></div></dl><button class="btn small delete-evidence" data-id="${item.id}">Delete</button></div></article>`;
-  }).join('') : '<div class="empty-state"><span>▧</span><h3>No matching evidence</h3><p>Drop a file or add a comment to begin the controlled evidence trail.</p></div>';
-  document.querySelectorAll('.verify-evidence').forEach(select => select.onchange = () => {
-    const item = caseData.evidence.find(e => e.id === select.dataset.id);
-    item.verificationStatus = select.value;
-    storage.update('cases', caseData.id, caseData);
-    toast('Evidence verification updated');
-    render();
-  });
-  document.querySelectorAll('.delete-evidence').forEach(button => button.onclick = () => {
-    if (confirm('Delete this evidence item? This cannot be undone.')) {
-      caseData.evidence = caseData.evidence.filter(item => item.id !== button.dataset.id);
-      storage.update('cases', caseData.id, caseData);
-      toast('Evidence deleted');
-      render();
-    }
-  });
-}
-
-document.querySelector('#chooseFile').onclick = () => fileInput.click();
-const dropZone = document.querySelector('#dropZone');
-dropZone.onclick = event => { if (!event.target.closest('button')) fileInput.click(); };
-dropZone.onkeydown = event => { if (['Enter', ' '].includes(event.key)) fileInput.click(); };
-['dragenter', 'dragover'].forEach(name => dropZone.addEventListener(name, event => { event.preventDefault(); dropZone.classList.add('dragging'); }));
-['dragleave', 'drop'].forEach(name => dropZone.addEventListener(name, event => { event.preventDefault(); dropZone.classList.remove('dragging'); }));
-dropZone.addEventListener('drop', event => { fileInput.files = event.dataTransfer.files; document.querySelector('#fileState').textContent = `${fileInput.files[0]?.name || 'File'} ready to add`; });
-fileInput.onchange = () => { document.querySelector('#fileState').textContent = `${fileInput.files[0]?.name || 'File'} ready to add`; if (!form.elements.title.value) form.elements.title.value = fileInput.files[0]?.name || ''; };
-document.querySelector('#evidenceFilter').onchange = render;
-form.onsubmit = async event => {
-  event.preventDefault();
-  const file = fileInput.files[0];
-  const limit = storage.get().settings.evidenceWarningKb * 1024;
-  const data = file && file.size <= limit ? await compress(file) : null;
-  if (file && file.size > limit) toast('File exceeds the local limit; metadata was saved instead');
-  caseData.evidence.push({ id: id('EVD'), type: form.elements.type.value, title: form.elements.title.value, notes: form.elements.notes.value, fileName: file?.name || '', data, questionId: form.elements.questionId.value, verificationStatus: form.elements.verificationStatus.value, uploadedBy: storage.get().settings.userName, at: new Date().toISOString() });
-  storage.update('cases', caseData.id, caseData);
-  form.reset();
-  toast('Evidence added to C7');
-  render();
-};
-render();
+const caseId=new URLSearchParams(location.search).get('caseId')||'CASE-2026-0001';
+const form=document.querySelector('#dropForm'),fileInput=document.querySelector('#evidenceFile');let evidence=[],questions=[];
+const types=['Meter photograph','Meter reading','Clamp-meter measurement','Power-analyser record','Thermal image','BMS screenshot','DB schedule','Single-line diagram','Work order','Permit','Technician report','Comment','Other document'];form.elements.type.innerHTML=types.map(type=>`<option>${type}</option>`).join('');
+async function load(){try{const [items,details]=await Promise.all([dataAdapter.getEvidence({caseId}),dataAdapter.getCaseDetails(caseId)]);evidence=items.data;questions=details.data.investigationInputs||[];form.elements.questionId.innerHTML='<option value="">General case evidence</option>'+questions.map(q=>`<option value="${esc(q.Question_ID)}">${esc(q.Question_ID)} · ${esc(displayValue(q.Question))}</option>`).join('');renderConnectionBanner({source:items.source,lastSync:items.meta.timestamp||items.meta.cachedAt});render()}catch(error){renderConnectionBanner({source:error.code==='API_NOT_CONFIGURED'?'unconfigured':'offline',message:safeMessage(error)});document.querySelector('#evidenceGallery').innerHTML=`<div class="empty-state"><h3>Evidence unavailable</h3><p>${safeMessage(error)}</p></div>`}}
+function render(){const verified=evidence.filter(item=>item.Verification_Status==='Verified').length;document.querySelector('#evidenceSummary').innerHTML=`<span><b>${evidence.length}</b><small>Total items</small></span><span><b>${verified}</b><small>Verified</small></span><span><b>${evidence.length-verified}</b><small>Awaiting review</small></span>`;const filter=document.querySelector('#evidenceFilter').value,items=evidence.filter(item=>!filter||item.Evidence_Type===filter);document.querySelector('#evidenceGallery').innerHTML=items.length?items.slice().reverse().map(item=>`<article class="evidence-tile"><div class="file-placeholder">▧</div><div><span class="badge">${esc(displayValue(item.Evidence_Type))}</span><h3><a href="${esc(item.File_Link||'#')}" target="_blank" rel="noopener">${esc(displayValue(item.File_Name))}</a></h3><p>${esc(displayValue(item.Remarks))}</p><dl><div><dt>Date</dt><dd>${item.Uploaded_At?date(item.Uploaded_At):'Not provided'}</dd></div><div><dt>Uploaded by</dt><dd>${esc(displayValue(item.Uploaded_By))}</dd></div><div><dt>Related question</dt><dd>${esc(displayValue(item.Question_ID))}</dd></div><div><dt>Verification</dt><dd><select class="verify-evidence" data-id="${esc(item.Evidence_ID)}">${['Pending verification','Verified','Needs recheck','Rejected'].map(status=>`<option ${status===item.Verification_Status?'selected':''}>${status}</option>`).join('')}</select></dd></div></dl></div></article>`).join(''):'<div class="empty-state"><h3>No matching evidence</h3><p>The live Evidence_Register returned no matching records.</p></div>';document.querySelectorAll('.verify-evidence').forEach(select=>select.onchange=async()=>{if(!confirm('Update this evidence verification status in the live Google Sheet?'))return load();try{await dataAdapter.updateEvidenceStatus({evidenceId:select.dataset.id,verificationStatus:select.value,updatedBy:storage.get().settings.userName||'Not provided'});toast('Evidence status updated and audited');load()}catch(error){toast(safeMessage(error));load()}})}
+document.querySelector('#chooseFile').onclick=()=>fileInput.click();fileInput.onchange=()=>{const file=fileInput.files[0];document.querySelector('#fileState').textContent=file?`${file.name} selected — upload it to approved storage and paste its HTTPS link. Binary upload is not enabled.`:'No file selected';if(file&&!form.elements.title.value)form.elements.title.value=file.name};const drop=document.querySelector('#dropZone');['dragenter','dragover'].forEach(name=>drop.addEventListener(name,event=>{event.preventDefault();drop.classList.add('dragging')}));['dragleave','drop'].forEach(name=>drop.addEventListener(name,event=>{event.preventDefault();drop.classList.remove('dragging')}));drop.ondrop=event=>{fileInput.files=event.dataTransfer.files;fileInput.onchange()};document.querySelector('#evidenceFilter').onchange=render;form.onsubmit=async event=>{event.preventDefault();if(!confirm('Create this evidence metadata record in the live Google Sheet?'))return;try{await dataAdapter.createEvidence({caseId,questionId:form.elements.questionId.value,fileLink:form.elements.fileLink.value,fileName:form.elements.title.value,uploader:storage.get().settings.userName||'Not provided',evidenceType:form.elements.type.value,verificationStatus:form.elements.verificationStatus.value,remarks:form.elements.notes.value});form.reset();toast('Evidence metadata created and audited');load()}catch(error){toast(safeMessage(error))}};load();

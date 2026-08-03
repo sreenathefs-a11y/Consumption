@@ -1,0 +1,21 @@
+import assert from 'node:assert/strict';
+import { DataAdapter } from '../js/data-adapter.js';
+import { C7_MOCK } from '../js/mock-fixture.js';
+import { ApiClient, ApiError } from '../js/api-client.js';
+import { RemoteStorage } from '../js/remote-storage.js';
+import { rootCauseGate } from '../js/workflow-engine.js';
+import { seedData } from '../js/seed-data.js';
+
+const memory=new Map();globalThis.localStorage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,String(v)),removeItem:k=>memory.delete(k)};
+const mockConfig=()=>({mode:'mock',baseUrl:'',apiToken:''});
+const adapter=new DataAdapter(mockConfig);
+const sites=await adapter.getSites();assert.equal(sites.data.length,1);assert.equal(sites.data[0].Site_Name,'Etihad Plaza');assert.equal(sites.data[0].Site_ID,null);
+const meters=await adapter.getMeters();assert.equal(meters.data[0].Meter_ID,'MTR-EYP-C7-001');assert.equal(meters.data[0].CT_Ratio,null);
+const cases=await adapter.getCases();assert.equal(cases.data.length,1);assert.equal(cases.data[0].Case_ID,'CASE-2026-0001');
+const details=await adapter.getCaseDetails('CASE-2026-0001');assert.equal(details.data.case.Case_ID,'CASE-2026-0001');assert.equal(details.data.meter.Meter_Number,'ACC11D000382');assert.equal(details.data.consumptionHistory.find(x=>x.Period==='2026-07').Consumption,18615);
+const dashboard=await adapter.getDashboard();assert.deepEqual(dashboard.data,{liveSites:1,buildings:0,mappedMeters:1,pendingVerificationReadings:0,openInvestigations:1,criticalAnomalies:1,highAnomalies:0,dataQualityIssues:0,correctiveActionsOverdue:0,moneyAtRisk:null,potentialSavings:null});
+await assert.rejects(()=>adapter.createMeterReading({}),/read-only/);
+const missingClient=new ApiClient(()=>({mode:'remote',baseUrl:'',apiToken:''}));await assert.rejects(()=>missingClient.get('getSites'),error=>error instanceof ApiError&&error.code==='API_NOT_CONFIGURED');
+let calls=0;const fakeClient={get:async()=>{calls++;if(calls===1)return{data:[{Site_ID:'SITE-EYP'}],meta:{timestamp:'2026-08-03T00:00:00Z'}};throw new ApiError('CONNECTION_ERROR','offline')}};const remote=new RemoteStorage(fakeClient);const live=await remote.read('getSites',{});assert.equal(live.source,'live');const cached=await remote.read('getSites',{});assert.equal(cached.source,'cache');assert.equal(cached.meta.cachedAt!==undefined,true);
+const localCase=seedData().cases[0];assert.equal(rootCauseGate(localCase).allowed,false);localCase.evidence=[{verificationStatus:'Verified'}];localCase.questions.forEach(q=>{if(q.mandatory||['Q3','Q4','Q5','Q20','Q21'].includes(q.id)){q.answer='Verified';q.status='Verified'}});localCase.actions=[{assigned:'Owner'}];assert.equal(rootCauseGate(localCase).allowed,true);
+assert.equal(C7_MOCK.anomalies.length,1);console.log('frontend adapter, C7 fixture, cache, configuration, and root-cause tests passed');
